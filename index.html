@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Easy validator</title>
+</head>
+<body>
+<style>
+input {
+	outline: none;
+}
+
+.invalid {
+	border: 1px solid red;
+}
+</style>
+
+<div id="app">
+	Age: <input type="number" v-model="age" :class="getState(validate.age)"><br>
+	Name: <input type="text" v-model="name" :class="getState(validate.name)">
+	<input type="submit" :disabled="!submit">
+
+	<div v-if="checkState(validate.age)" v-for="item in validate.age">{{ item }}</div>
+	<div v-if="checkState(validate.name)" v-for="item in validate.name">{{ item }}</div>
+</div>
+
+<script src="vue.min.js"></script>
+<script>
+function easyValidator(data) {
+	return {
+		_states: {},
+		minValue(value) {
+			if(Number(data) >= value) {
+				this._states["minValue"] = { validate: true, value, currentValue: data }
+			} else {
+				this._states["minValue"] = { validate: false, value, currentValue: data }
+			}
+			
+			return this;
+		},
+		maxValue(value) {
+			if(Number(data) <= value) {
+				this._states["maxValue"] = { validate: true, value, currentValue: data }
+			} else {
+				this._states["maxValue"] = { validate: false, value, currentValue: data }
+			}
+			
+			return this;
+		},
+		minLength(value) {
+			if(data.length >= value) {
+				this._states["minLength"] = { validate: true, value, currentValue: data.length }
+			} else {
+				this._states["minLength"] = { validate: false, value, currentValue: data.length }
+			}
+
+			return this;
+		},
+		maxLength(value) {
+			if(data.length <= value) {
+				this._states["maxLength"] = { validate: true, value, currentValue: data.length }
+			} else {
+				this._states["maxLength"] = { validate: false, value, currentValue: data.length }
+			}
+
+			return this;
+		},
+		end() {
+			let states = this._getStates();
+
+			if(this._checkStates(states)) {
+				return true;
+			} else {
+				return this._getErrorsState();
+			}
+		},
+		_getStates() {
+			let states = [];
+
+			for(let key in this._states) {
+				let state = this._states[key];
+
+				states.push(state.validate);
+			}
+
+			return states;
+		},
+		_checkStates(states) {
+			if(states.every(state => state === true)) {
+				return true;
+			} else {
+				return false;
+			}
+		},
+		_getErrorsState() {
+			let states = [];
+
+			for(let key in this._states) {
+				let state = this._states[key];
+
+				if(!state.validate) {
+					states.push(`${key}: ${state.value}, current value is: ${state.currentValue ? state.currentValue : "empty"}`);
+				}
+			}
+
+			return states;
+		}
+	}
+}
+
+let app = new Vue({
+	el: "#app",
+	data: {
+		age: null,
+		name: null,
+		submit: false,
+		validate: {
+			age: null,
+			name: null
+		}
+	},
+	methods: {
+		getState(state) {
+			if(Array.isArray(state)) {
+				return "invalid";
+			} else {
+				return "";
+			}
+		},
+		checkState(state) {
+			return Array.isArray(state);
+		}
+	},
+	watch: {
+		age(value) {
+			this.validate.age = easyValidator(value).minValue(10).maxValue(20).end();
+		},
+		name(value) {
+			this.validate.name = easyValidator(value).minLength(5).maxLength(10).end();
+		},
+		validate: {
+			deep: true,
+			handler(value) {
+				if(Object.values(value).every(item => item === true)) {
+					this.submit = true;
+				} else {
+					this.submit = false;
+				}
+			}
+		}
+	}
+})
+</script>
+</body>
+</html>
